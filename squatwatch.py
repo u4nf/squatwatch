@@ -1,6 +1,14 @@
-import subprocess, json, logging, sys
+#ipscout modules
+from shodan import Shodan
+from datetime import datetime
+from operator import itemgetter
+import ipinfo
+import json, pprint, requests, argparse, csv, logging, sys, base64, os, re
 
-domain = 'secure-iss.com'
+import subprocess
+import ipscout as IPS
+
+domain = 'illustrious.com'
 basePath = './'
 logfile = 'dns.log'
 twistOut = 'output.json'
@@ -34,7 +42,38 @@ def runTwist(domain):
 	#Runs the external dnstwist script saves as JSON and screens.
 
 	logging.debug(f'Commencing twist - {domain}')
+	print('This may take a while, expect results within 5 min if the domain is approx 15 chars')
 	subprocess.run(["python3", "dnstwist.py", "-wrgp", "--screenshots", "screens", "--format", "json", "-o", f"{twistOut}", f"{domain}"])
+
+
+def enrich(data):
+
+	def runIPScout(ip):
+
+		#run ipscout and return ip intel object
+		return IPS.buildJSONOnly(ip)
+
+
+	ipPattern = r'^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$'
+
+	for index, squat in enumerate(data):
+
+		#check if valid ip is returned, if yes, enrich
+		logging.debug(f'Verifying {squat["dns_a"][0]} is a valid IPV4')
+		ip = squat.get("dns_a", [None])[0]
+
+
+		if re.match(ipPattern, ip) is not None:
+
+			logging.debug(f'Enriching {ip} via ipscout')
+			ipscout = runIPScout(ip)
+		else:
+			ipscout = None
+
+
+		data[index]['ipscout'] = ipscout
+
+	return data
 
 
 def importJSON():
@@ -58,7 +97,9 @@ def buildHTML(data):
 
 
 	def boilerplate():
-		html = f'<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport"content="width=device-width, initial-scale=1.0">\n<meta http-equiv="X-UA-Compatible"content="ie=edge">\n<title>IP Scout</title>\n<link rel="stylesheet"href="styles.css">\n</head>\n<body>'
+		html = f'<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport"content="width=device-width, initial-scale=1.0">\n<meta http-equiv="X-UA-Compatible"content="ie=edge">\n<title>Squatwatch</title>\n<link rel="stylesheet"href="styles.css">\n</head>\n<body>'
+
+		html += f'<section class="mainTitle"><h1>Squatwatch results for <span class="titleDomain">{domain}</span><h1></section>'
 		
 		return html
 
@@ -73,12 +114,21 @@ def buildHTML(data):
 			country = domain.get("geoip", noDataMsg)
 			created = domain.get("whois_created", noDataMsg)
 			registrar = domain.get("whois_registrar", noDataMsg)
+			numCols = str(4)
 
-			html += f'<div><h2>{domName}</h2><h3>{ip}<h3><h4>{country}<h4><h4>{created}</h4><h4>{registrar}</h4></div>'
+			html += f'<div>\
+				<h2>{domName}</h2>\
+				<table style="--num-cols: {numCols};"><tr><th>IP Address</th><th>Country</th><th>Registered</th><th>Registrar</th></tr>\
+				<tr><td><h3>{ip}<h3></td><td><h4>{country}</h4></td><td><h4>{created}</h4></td><td><h4>{registrar}</h4></td></tr></table></div>'
 
 		html += '</section>'
 
 		return html
+
+
+	def ipScoutSection():
+		#add ip intel
+		pass
 
 
 	html = boilerplate()
@@ -86,9 +136,19 @@ def buildHTML(data):
 
 	writeHTMLToFile(html)
 
+"""
+#delete old data
+if os.path.exists(twistOut):
+	logging.debug(f'Deleting old file - {twistOut}')
+	os.remove(twistOut)
+"""
 
 showLogo()
 #runTwist(domain)
 data = importJSON()
+#enrich with ipscout data
+data = enrich(data)
+
+IPS.dictToJson(data, 'test.json')
 
 buildHTML(data)
