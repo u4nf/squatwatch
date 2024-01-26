@@ -136,18 +136,27 @@ def buildHTML(data):
 
 	writeHTMLToFile(html)
 
-"""
+
 #delete old data
 if os.path.exists(twistOut):
 	logging.debug(f'Deleting old file - {twistOut}')
 	os.remove(twistOut)
-"""
 
 showLogo()
-#runTwist(domain)
+runTwist(domain)
 data = importJSON()
 #enrich with ipscout data
 data = enrich(data)
+
+#curate API data one IP at a time
+for i in data:
+	
+	enriched = IPS.parseToOutput(i['ipscout'])
+	i['enrich'] = enriched
+
+	#delete the superfluous data
+	del i['ipscout']
+
 
 IPS.dictToJson(data, 'test.json')
 
