@@ -7,7 +7,7 @@ import json, pprint, requests, argparse, csv, logging, sys, base64
 #parse arguments
 parser = argparse.ArgumentParser(description='A commandline tool to retrieve metadata about an IP from multiple sources.')
 parser.add_argument('-i', type=str, default='8.8.8.8', help='The IP address to scout')
-parser.add_argument('-o', type=str, help='JSON output file name')
+parser.add_argument('-o', type=str, default='ipscout.json', help='JSON output file name')
 args=parser.parse_args()
 
 #set variables
@@ -15,7 +15,7 @@ ip = args.i
 outfile = args.o
 output = {}
 logfile = 'ipScout.log'
-noRender = True
+noRender = False
 
 #configure logger
 logging.basicConfig(handlers=[logging.StreamHandler(sys.stdout), logging.FileHandler(logfile, mode="a"),],level=logging.DEBUG,format='%(asctime)s[%(levelname)s]: %(message)s', datefmt='%d-%m-%Y %H:%M:%S',)
@@ -194,7 +194,7 @@ def getIPApiOutput(ip):
 	return json.loads(response.text)
 
 
-def parseToOutput(inputData=None):
+def parseToOutput(inputData='Stand Alone'):
 
 	def getXforceHistory(num, externalSource=None):
 		#returns dict containing the <NUM> most recent detections
@@ -225,7 +225,8 @@ def parseToOutput(inputData=None):
 	notAvailable = 'Data unavailable'
 
 	#check if being called by external script, if yes, create new object (inputData exists)
-	if inputData != None:
+	if inputData != 'Stand Alone':
+		logging.debug('Called from script')
 		output = {}
 
 		#parses multiple sources into a single output object
@@ -263,35 +264,36 @@ def parseToOutput(inputData=None):
 	else:
 
 		#parses multiple sources into a single output object
+		logging.debug('Called from main')
+
+		output = {}
 		output['location'] = vpnapiOutput.get('location', notAvailable)
 		output['location']['flagURL'] = ipinfoOutput.get('country_flag_url', notAvailable)
 		output['location']['city'] = ipinfoOutput.get('city', notAvailable)
 		output['location']['region'] = ipinfoOutput.get('region', notAvailable)
 		output['network'] = vpnapiOutput.get('network', notAvailable)
-		output['network']['isp'] = abuseIPDBOutput.get['data']['isp']
-		output['network']['usageType'] = abuseIPDBOutput.get['data']['usageType']
-		output['network']['domain'] = abuseIPDBOutput.get['data']['domain']
+		output['network']['isp'] = abuseIPDBOutput['data']['isp']
+		output['network']['usageType'] = abuseIPDBOutput['data']['usageType']
+		output['network']['domain'] = abuseIPDBOutput['data']['domain']
 		output['VPNData'] = {}
-		output['VPNData']['VPN'] = vpnapiOutput.get['security']['vpn']
-		output['VPNData']['TOR'] = vpnapiOutput.get['security']['tor']
-		output['VPNData']['Proxy'] = vpnapiOutput.get['security']['proxy']
-		output['VPNData']['Relay'] = vpnapiOutput.get['security']['relay']
+		output['VPNData']['VPN'] = vpnapiOutput['security']['vpn']
+		output['VPNData']['TOR'] = vpnapiOutput['security']['tor']
+		output['VPNData']['Proxy'] = vpnapiOutput['security']['proxy']
+		output['VPNData']['Relay'] = vpnapiOutput['security']['relay']
 		output['ports'] = shodanOutput.get('ports', notAvailable)
 		output['ip'] = vpnapiOutput.get('ip', notAvailable)
-		output['flag'] = ipapiOutput.get['location']['country_flag']
+		output['flag'] = ipapiOutput.get('location', {}).get('country_flag', 'NONE')
 		output['historicURLs'] = historicUrls
 		output['vtDetections'] = vtOutput.get('detected_urls', notAvailable)
 		output['abuseIPDBDetections'] = {}
-		output['abuseIPDBDetections']['totalReports'] = abuseIPDBOutput.get['data']['totalReports']
-		output['abuseIPDBDetections']['lastReport'] = abuseIPDBOutput.get['data']['lastReportedAt']
-		output['abuseIPDBDetections']['score'] = abuseIPDBOutput.get['data']['abuseConfidenceScore']
+		output['abuseIPDBDetections']['totalReports'] = abuseIPDBOutput['data']['totalReports']
+		output['abuseIPDBDetections']['lastReport'] = abuseIPDBOutput['data']['lastReportedAt']
+		output['abuseIPDBDetections']['score'] = abuseIPDBOutput['data']['abuseConfidenceScore']
 		output['xforceData'] = {}
 		output['xforceData']['score'] = xforceOutput.get('score', notAvailable)
 		output['xforceData']['categories'] = xforceOutput.get('cats', notAvailable)
 		output['xforceData']['history'] = getXforceHistory(10)
 
-	#check if being called by external script (inputData exists)
-	if inputData != None:
 		return output
 
 
@@ -342,10 +344,11 @@ def buildJSONOnly(ip):
 	return allData
 
 
-
-def buildHTML():
+def buildHTML(output):
 
 	def writeHTMLToFile(html):
+
+		logging.debug("Write HTML to file")
 
 		text_file = open("index.html", "w")
 		text_file.write(html)
@@ -353,6 +356,7 @@ def buildHTML():
 
 
 	def boilerplate():
+		logging.debug('Adding Boilerplate')
 		html = f'<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport"content="width=device-width, initial-scale=1.0">\n<meta http-equiv="X-UA-Compatible"content="ie=edge">\n<title>IP Scout</title>\n<link rel="stylesheet"href="styles.css">\n</head>\n<body>'
 		
 		return html
@@ -482,6 +486,7 @@ def buildHTML():
 
 	def addHeaderDiv(html):
 
+
 		def detectionsDIV():
 			#build table div from detection engines
 
@@ -526,6 +531,7 @@ def buildHTML():
 			return vpnDIV + '</table></div>'
 
 
+		logging.debug('Adding header div')
 		headerDIV = f'<div><h1>{output["ip"]}</h1>'
 		headerDIV += detectionsDIV() + vpnDIV() + '</div>'
 		
@@ -561,10 +567,9 @@ if __name__ == "__main__":
 
 	allData = compileJSONData()
 
-	parseToOutput()
-
+	output = parseToOutput()
 	dictToJson(output, outfile)
 	dictToJson(allData, 'allData.json')
 
 	if not noRender:
-		buildHTML()
+		buildHTML(output)
