@@ -24,7 +24,7 @@ twistOut = args.t
 output = {}
 basePath = './'
 logfile = 'squatwatch.log'
-
+embedCSS = True
 noRender = False
 
 #configure logger
@@ -72,7 +72,6 @@ def enrich(data):
 
 	for index, squat in enumerate(data):
 
-		print(squat)
 		#check if valid ip is returned, if yes, enrich
 		ip = squat.get("dns_a", [None])[0]
 		logging.debug(f'Verifying {ip} is a valid IPV4')
@@ -80,7 +79,7 @@ def enrich(data):
 
 		if re.match(ipPattern, ip) is not None:
 
-			logging.debug(f'Enriching {ip} via ipscout')
+			logging.info(f'Enriching {ip} via ipscout')
 			ipscout = runIPScout(ip)
 		else:
 			ipscout = None
@@ -113,16 +112,16 @@ def buildHTML(data):
 
 	def boilerplate():
 
-		"""
-		#get CSS
-		with open('styles.css', 'r') as cssFile:
-			css = cssFile.read()
+		#Hardcode CSS into HTML if embedCSS is True
+		if embedCSS:
+			#get CSS
+			with open('styles.css', 'r') as cssFile:
+				css = cssFile.read()
 
-		#Hardcode css
-		html = f'<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport"content="width=device-width, initial-scale=1.0">\n<meta http-equiv="X-UA-Compatible"content="ie=edge">\n<title>Squatwatch</title>\n<style>{css}</style>\n</head>\n<body>'
-		"""
-		
-		html = f'<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport"content="width=device-width, initial-scale=1.0">\n<meta http-equiv="X-UA-Compatible"content="ie=edge">\n<title>Squatwatch</title>\n<link rel="stylesheet"href="styles.css">\n</head>\n<body>'
+			#Hardcode css
+			html = f'<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport"content="width=device-width, initial-scale=1.0">\n<meta http-equiv="X-UA-Compatible"content="ie=edge">\n<title>Squatwatch</title>\n<style>{css}</style>\n</head>\n<body>'
+		else:
+			html = f'<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport"content="width=device-width, initial-scale=1.0">\n<meta http-equiv="X-UA-Compatible"content="ie=edge">\n<title>Squatwatch</title>\n<link rel="stylesheet"href="styles.css">\n</head>\n<body>'
 
 		html += f'<section class="mainTitle"><h1>Potential squatting domains for <span class="titleDomain">{domain}</span><h1></section>'
 		
@@ -148,7 +147,7 @@ def buildHTML(data):
 
 		#resize
 		image = Image.open(screensDir + '/' + screenshotName)
-		image.thumbnail((150,150))
+		image.thumbnail((200,200))
 		image.save(screensDir + '/thumb_' + screenshotName)
 
 		#get b64 as string
@@ -194,6 +193,7 @@ def buildHTML(data):
 		network = enrich["network"]["network"]
 		isp = enrich["network"]["isp"]
 		usageType = enrich["network"]["usageType"]
+		ports = enrich["ports"].sort()
 
 		#location
 		city = enrich["location"]["city"]
@@ -210,9 +210,18 @@ def buildHTML(data):
 		xforceScore = enrich['xforceData']['score']
 		xforceCat = enrich['xforceData']['categories']
 
-		vtDetections = enrich['vtDetections']
 		historicURLs = enrich['historicURLs']
 
+		#create open ports row
+		if len(ports) > 0:
+			portStr = ''
+
+			for port in ports:
+				portStr += str(port) + ', '
+
+			openPorts = f'<tr><th>Open Ports</th><td>{portStr[:-2]}</td></tr>'
+		else:
+			openPorts = None
 
 		html = '<div class="intel"><table>'
 
@@ -222,6 +231,7 @@ def buildHTML(data):
 		html += f'<tr><th>ASN</th><td>{asn}</td></tr>'
 		html += f'<tr><th>Organisation</th><td>{asnOrg}</td></tr>'
 		html += f'<tr><th>Network</th><td>{network}</td></tr>'
+		html += f'{openPorts}'
 		html += f'<tr><th>ISP</th><td>{isp}</td></tr>'
 		html += f'<tr><th>Type</th><td>{usageType}</td></tr>'
 		html += f'<tr><td colspan="2"></td></tr>'
@@ -230,9 +240,22 @@ def buildHTML(data):
 		#iterate over categories
 		for i in xforceCat.keys():
 			html += f'<tr class="xforce"><th>{i}</th><td>{enrich["xforceData"]["categories"][i]}% confidence</td></tr>'
+		
+		html += '</table>'
 
+		# Historic URLs
+		if len(historicURLs) > 0:
+			historicURLsDIV = f'<details><summary><table class="summarised" colspan="2"><tr><td>Historic domains from this IP - {str(len(historicURLs))}</tr></td></table></summary>'
+			historicURLsDIV += '<table><tr><th>URL</th><th>Last Resolved</th></tr>'
 
-		html += '</table></div></details></section><hr>'
+			for i in historicURLs:
+				historicURLsDIV += f'<tr><td><a href="{i["hostname"]}">{i["hostname"]}<a></td><td>{i["last_resolved"]}</td></tr>'
+
+			historicURLsDIV += '</table></details>'
+
+			html += historicURLsDIV
+
+		html += '</div></details></section><hr>'
 
 		return html
 
@@ -246,15 +269,17 @@ def buildHTML(data):
 	writeHTMLToFile(html)
 
 
+showLogo()
+
 #delete old data
 if os.path.exists(twistOut):
 	logging.debug(f'Deleting old file - {twistOut}')
 	os.remove(twistOut)
 
-showLogo()
-
+#generate permutations
 runTwist(domain)
 
+#import data from twist
 data = importJSON()
 
 #remove entries with no ip (url does not have an A record)
@@ -267,6 +292,9 @@ for entry in data:
 #enrich with ipscout data
 data = enrich(data)
 
+#save raw data
+IPS.dictToJson(data, f'raw_{domain}.json')
+
 #curate API data one IP at a time
 for i in data:
 	
@@ -276,11 +304,6 @@ for i in data:
 	#delete the superfluous data
 	del i['ipscout']
 
+IPS.dictToJson(data, f'curated_{domain}.json')
 
-IPS.dictToJson(data, 'test.json')
-"""
-
-with open(f'test.json') as json_file:
-	data = json.load(json_file)
-"""
 buildHTML(data)
