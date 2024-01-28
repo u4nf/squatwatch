@@ -4,21 +4,6 @@ from operator import itemgetter
 import ipinfo
 import json, pprint, requests, argparse, csv, logging, sys, base64
 
-#parse arguments
-parser = argparse.ArgumentParser(description='A commandline tool to retrieve metadata about an IP from multiple sources.')
-parser.add_argument('-i', type=str, default='8.8.8.8', help='The IP address to scout')
-parser.add_argument('-o', type=str, default='ipscout.json', help='JSON output file name')
-args=parser.parse_args()
-
-#set variables
-ip = args.i
-outfile = args.o
-output = {}
-logfile = 'ipScout.log'
-noRender = False
-
-#configure logger
-logging.basicConfig(handlers=[logging.StreamHandler(sys.stdout), logging.FileHandler(logfile, mode="a"),],level=logging.DEBUG,format='%(asctime)s[%(levelname)s]: %(message)s', datefmt='%d-%m-%Y %H:%M:%S',)
 
 
 def showLogo():
@@ -260,6 +245,8 @@ def parseToOutput(inputData='Stand Alone'):
 		    output['vtDetections'] = inputData['vtOutput'].get('detected_urls', notAvailable)
 		else:
 		    output['vtDetections'] = notAvailable
+
+		return output
 
 	else:
 
@@ -552,6 +539,22 @@ def buildHTML(output):
 
 #prevent entire script from running when using as an import source
 if __name__ == "__main__":
+
+	#parse arguments
+	parser = argparse.ArgumentParser(description='A commandline tool to retrieve metadata about an IP from multiple sources.')
+	parser.add_argument('-i', type=str, default='8.8.8.8', help='The IP address to scout')
+	parser.add_argument('-o', type=str, default='ipscout.json', help='JSON output file name')
+	args=parser.parse_args()
+
+	#set variables
+	ip = args.i
+	outfile = args.o
+	output = {}
+	logfile = 'ipScout.log'
+	noRender = False
+
+	#configure logger
+	logging.basicConfig(handlers=[logging.StreamHandler(sys.stdout), logging.FileHandler(logfile, mode="a"),],level=logging.DEBUG,format='%(asctime)s[%(levelname)s]: %(message)s', datefmt='%d-%m-%Y %H:%M:%S',)
 
 	showLogo()
 
