@@ -206,7 +206,6 @@ def parseToOutput(inputData='Stand Alone'):
 		else:
 			return get_recent_entries(externalSource['xforceOutput']['history'])
 
-
 	notAvailable = 'Data unavailable'
 
 	#check if being called by external script, if yes, create new object (inputData exists)
@@ -242,9 +241,9 @@ def parseToOutput(inputData='Stand Alone'):
 		output['xforceData']['history'] = getXforceHistory(2, inputData)
 		
 		if inputData['vtOutput'] is not None:
-		    output['vtDetections'] = inputData['vtOutput'].get('detected_urls', notAvailable)
+			output['historicURLs'] = getHistoricUrls(inputData['vtOutput'])
 		else:
-		    output['vtDetections'] = notAvailable
+			output['historicURLs'] = []
 
 		return output
 
@@ -302,7 +301,6 @@ def buildJSONOnly(ip):
 	logging.info('Building JSON - ipscout')
 
 	compileCreds()
-	#global ipapiOutput, xforceOutput, vpnapiOutput, abuseIPDBOutput, vtOutput, ipinfoOutput, shodanOutput, historicUrls, allData
 
 	ipapiOutput = getIPApiOutput(ip)
 	xforceOutput = getXForceOutput(ip)
