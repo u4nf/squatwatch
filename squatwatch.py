@@ -112,6 +112,16 @@ def buildHTML(data):
 
 
 	def boilerplate():
+
+		"""
+		#get CSS
+		with open('styles.css', 'r') as cssFile:
+			css = cssFile.read()
+
+		#Hardcode css
+		html = f'<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport"content="width=device-width, initial-scale=1.0">\n<meta http-equiv="X-UA-Compatible"content="ie=edge">\n<title>Squatwatch</title>\n<style>{css}</style>\n</head>\n<body>'
+		"""
+		
 		html = f'<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport"content="width=device-width, initial-scale=1.0">\n<meta http-equiv="X-UA-Compatible"content="ie=edge">\n<title>Squatwatch</title>\n<link rel="stylesheet"href="styles.css">\n</head>\n<body>'
 
 		html += f'<section class="mainTitle"><h1>Potential squatting domains for <span class="titleDomain">{domain}</span><h1></section>'
@@ -235,16 +245,25 @@ def buildHTML(data):
 
 	writeHTMLToFile(html)
 
-"""
+
 #delete old data
 if os.path.exists(twistOut):
 	logging.debug(f'Deleting old file - {twistOut}')
 	os.remove(twistOut)
-"""
+
 showLogo()
 
-#runTwist(domain)
+runTwist(domain)
+
 data = importJSON()
+
+#remove entries with no ip (url does not have an A record)
+for entry in data:
+	if 'dns_a' in entry:
+		continue
+	else:
+		data.remove(entry)
+
 #enrich with ipscout data
 data = enrich(data)
 
