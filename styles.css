@@ -1,0 +1,242 @@
+:root {
+	--col1: #081C15;
+	--col2: #1B4332;
+	--col3: #2D6A4F;
+	--col4: #40916C;
+	--col5: #52B788;
+	--col6: #74C69D;
+	--col7: #95D5B2;
+	--col8: #B7E4C7;
+	--col9: #D8F3DC;
+	--text: #D8F3DC;
+}
+
+body {
+	background-color: var(--col1);
+	font-family: 'Cairo', sans-serif;
+	color: var(--text);
+}
+
+header {
+	/*background-color: rgb(86, 217, 167);*/
+	padding-bottom: 10em;
+	text-align: center;
+}
+
+
+h2, h3, h4 {
+	color: var(--text);
+}
+
+
+h1 {
+	text-align: center;
+	font-size: xx-large;
+	color: var(--text);
+	margin-left: 2em;
+}
+
+h2 {
+	text-align: center;
+	text-transform: uppercase;
+    letter-spacing: 4px;
+}
+
+h4 {
+	font-weight: 900;
+}
+
+.dull {
+	opacity: 0.2;
+}
+
+.highlight {
+	background-color: tomato;
+}
+
+
+.pwned {
+	background-color: #710909;
+	color: whitesmoke;
+}
+
+.notPwned {
+	background-color: rgb(86, 217, 167);
+}
+
+.breachdata .dark{
+	background-color: rgb(100, 200, 167);
+	padding-left: 3em;
+	padding-right: 3em;
+	padding-top: 1.1em;
+	padding-bottom: 1.1em;
+}
+
+.breachdata .light {
+	background-color: rgb(86, 217, 167);
+	padding-left: 3em;
+	padding-right: 3em;
+	padding-top: 1.1em;
+	padding-bottom: 1.1em;
+}
+
+.breachdata h1 {
+	color: black;
+	text-align: center;
+}
+
+.breachdata a {
+	color: #456990;
+}
+
+.breachdata .changecol {
+	display: inline;
+	color: #456990;
+}
+
+.breachdata .impacted {
+	text-align: right;
+}
+
+.breachdata .count {
+	color: red;
+	font-size: xx-large;
+}
+
+.breachdata blockquote {
+	font-size: 1.5em;
+	font-weight: 500;
+}
+
+.breachdata img {
+	display: block;
+	padding: 1em;
+	float: left;
+	width: 10em;
+	margin-right: 1em;
+}
+
+.breachEntry {
+	margin-left: 10%;
+	margin-right: 10%;
+}
+
+.footerlogo {
+	display: block;
+	padding-top: 2em;
+	padding-bottom: 2em;
+	margin: auto;
+	width: 7%;
+}
+
+.mainTitle {
+	text-align: center;
+	margin: auto;
+}
+
+.titleDomain {
+	color: var(--col4);
+}
+
+
+/*TABLE*/
+
+table {
+  width: 55%;
+  height: auto;
+  border: 10px solid var(--col3);
+  border-radius: 15px;
+  margin: auto;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 1.3em;
+  margin-bottom: 5em;
+  background-color: var(--col4);
+  /* table-layout: auto;*/
+
+}
+
+table th, table td {
+  width: calc(100% / var(--num-cols)); /*set width*/
+  padding: 12px;
+  text-align: center;
+  border: 1px solid #ccc;
+  box-shadow: 0 0 10px rgba(0, 0, 255, 0.2); /* Add glowing effect */
+}
+
+th {
+	background-color: var(--col2);
+	color: var(--col4);
+}
+
+td {
+	background-color: var(--col2);
+}
+
+tr {
+	border: 4px solid white;
+}
+
+/* hide arrow */
+details > summary {
+  list-style: none;
+}
+details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.summarised {
+	cursor: pointer;
+	transition: transform 0.3s ease;
+}
+
+.domname {
+	cursor: pointer;
+}
+
+.summarised:hover {
+  transform: scale(1.05);
+}
+
+.summarised table {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  font-size: 1.2vw;
+}
+
+.summarised:hover table {
+  transform: scale(1.05);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 1); /* Glow */
+}
+
+.xforce {
+	opacity: 0.7;
+	font-weight: lighter;
+}
+
+.ip {
+  color: black;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 1), rgba(255, 255, 255, 0));
+  text-shadow: 0 0 5px white;
+  font-size: 1.6vw;
+}
+
+.intel table {
+	width: 40%;
+}
+
+hr {
+  border: none;
+  height: 3px;
+  background: linear-gradient(to right, var(--col2), var(--col7), var(--col2), var(--col7), var(--col2));
+  margin: 40px calc((100% - 50%) / 3.5);
+  box-shadow: 0 0 20px #00ffff, 0 0 30px #00ffff;
+}
+
+a {
+	color: inherit;
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
