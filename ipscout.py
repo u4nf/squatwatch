@@ -349,66 +349,61 @@ def buildHTML(output):
 
 	def addLocationDiv(html):
 
-		locationDIV = f'<div><h2>Location</h2>\
-		<h3>Country</h3>\
-		{output["location"]["country"]}\
-		<h3>Region</h3>\
-		{output["location"]["region"]}\
-		<h3>City</h3>\
-		{output["location"]["city"]}\
-		<img src="{output["flag"]}" alt="{output["location"]["country_code"]}_flag"/></div>'
+		locationDIV = f'<div><h2>Location</h2><table>\
+		<tr><th>Country</th><td>{output["location"]["country"]}</td></tr>\
+		<tr><th>Region</th><td>{output["location"]["region"]}</td></tr>\
+		<tr><th>City</th><td>{output["location"]["city"]}</td></tr></table>'
 
 		return locationDIV
 
 
 	def addNetworkDiv(html):
-		networkDIV = f'<div><h2>Network<H2>\
-		<h3>CIDR</h3>\
-		{output["network"]["network"]}\
-		<h3>ASN</h3>\
-		{output["network"]["autonomous_system_number"]}\
-		<h3>ASN Organisation</h3>\
-		{output["network"]["autonomous_system_organization"]}\
-		<h3>ISP</h3>\
-		{output["network"]["isp"]}\
-		<h3>Usage Type</h3>\
-		{output["network"]["usageType"]}\
-		<h3>Domain</h3>\
-		{output["network"]["domain"]}\
-		</div>'
+		networkDIV = f'<div><h2>Network</h2>\
+		<table><tr><th>CIDR</th>\
+		<td>{output["network"]["network"]}</td></tr>\
+		<tr><th>ASN</th>\
+		<td>{output["network"]["autonomous_system_number"]}</td></tr>\
+		<tr><th>ASN Organisation</th>\
+		<td>{output["network"]["autonomous_system_organization"]}</td></tr>\
+		<tr><th>ISP</th>\
+		<td>{output["network"]["isp"]}</td></tr>\
+		<tr><th>Usage Type</th>\
+		<td>{output["network"]["usageType"]}</td></tr>\
+		<tr><th>Domain</th>\
+		<td>{output["network"]["domain"]}</td></tr>\
+		</table></div>'
 
 		return networkDIV
 
 
 	def addPortsDiv(html):
 
+		#check that open ports are recorded
 		if (output['ports'] == 'No Data Available'):
-			portsDIV = f'<div><h2>Open Ports</h2>None found</div>'
-			return portsDIV
+			return ''
 
 		#compile list of ports
-		portList = '<ul>'
+		portsDIV = f'<div><h2>Open Ports</h2>'
+		portsDIV += f'<table><tr><td>'
+
+		portList = ''
 		
 		for port in output['ports']:
-			portList += f'<li>{port}</li>'
+			portList += f'{port}, '
 
-		portList += '</ul>'
-
-		portsDIV = f'<h2>Open Ports</h2>{portList}</div>'
+		portsDIV += f'{portList[:-2]}<tr></td></table>'
 
 		return portsDIV
 
 
 	def addHistoricUrls(html):
 
-		historicUrlsDIV = '<div><h2>Historic URLs</h2>'
-
 		#ensure data exists
 		if (len(output['historicURLs']) == 0):
-			historicUrlsDIV += 'None found</div>'
+			#No history, return nothing
+			return ''
 
-			return historicUrlsDIV
-
+		historicUrlsDIV = '<div><h2>Historic URLs</h2>'
 		table = '<table><tr><th>URL</th><th>Last Seen</th></tr>'
 
 		for url in output['historicURLs']:
@@ -421,48 +416,22 @@ def buildHTML(output):
 		return historicUrlsDIV
 
 
-	def addDetections(html):
-
-		detectionsDIV = '<div><h2>Detections</h2>'
-
-		#add AbuseIPDB data
-		if output['abuseIPDBDetections']['totalReports'] > 0:
-			abuseIPDBDIV = f'<div><h3>AbuseIPDB</h3>\
-			<h4>Hostile</h4>{output["abuseIPDBDetections"]["score"]}%\
-			<h4>Reports</h4>{output["abuseIPDBDetections"]["totalReports"]}\
-			<h4>Last Report</h4>{output["abuseIPDBDetections"]["lastReport"]}\
-			</div>'
-		else:
-			abuseIPDBDIV = f'<div><h3>AbuseIPDB</h3><h4>No Reports</h4></div>'
-
-		#add Virustotal detections
-		if len(output['vtDetections']) > 0:
-			virustotalDIV = f'<div><h3>VirusTotal</h3><table>\
-			<tr><th>Asset</th><th>Positives</th><th>Scan Date</th></tr>'
-
-			for i in output['vtDetections']:
-				virustotalDIV += f'<tr><td>{i["url"]}</td><td>{i["positives"]}/{i["total"]}</td><td>{i["scan_date"]}</td></tr>'
-
-			virustotalDIV += '</table></div>'
-
-		else:
-			virustotalDIV = f'<div><h3>VirusTotal</h3><h4>No Reports</h4></div>'
-
-		return html + abuseIPDBDIV + virustotalDIV
-
-
 	def addXforecHistory(html):
+		#check if history exists
+		if len(output['xforceData']['history']) == 0:
+			return ''
+
 		xforceHistoryDIV = '<div><h2>XForce Detections</h2>'
 
 		#create detections table, set quantity in <parseToOutput()>
-		if len(output['xforceData']['history']) > 0:
-			#create table
-			table = '<table><tr><th>Timestamp</th><th>Reporting Country</th><th>Reason</th><th>Confidence</th></tr>'
+		table = '<table><tr><th>Timestamp</th><th>Reporting Country</th><th>Reason</th><th>Confidence</th></tr>'
 
-			for i in output['xforceData']['history']:
-				table += f'<tr><td>{i["created"][:10]}</td><td>{i["geo"]["country"]}</td><td>{i["reason"]}</td><td>{i["score"] * 10}</td></tr>'
+		for i in output['xforceData']['history']:
+			country = i.get('geo', {}).get('country', 'notAvailable')
 
-			table += '</table>'
+			table += f'<tr><td>{i["created"][:10]}</td><td>{country}</td><td>{i["reason"]}</td><td>{i["score"] * 10}%</td></tr>'
+
+		table += '</table>'
 
 		xforceHistoryDIV += table + '</div>'
 
@@ -471,34 +440,61 @@ def buildHTML(output):
 
 	def addHeaderDiv(html):
 
+		logging.debug('Adding header div')
 
-		def detectionsDIV():
-			#build table div from detection engines
 
-			detectionsDIV = f'<div><table><tr><th>Engine</th><th>Score</th></tr>\
-			<tr><td>AbuseIPDB</td><td>{output["abuseIPDBDetections"]["score"]}%</td></tr>'
 
-			if output["abuseIPDBDetections"]["score"] > 0:
-				detectionsDIV += f'<tr><td columns="2">{output["abuseIPDBDetections"]["lastReport"][:-15]}</td></tr>'
+		headerDIV = f'<div class="header">'
+		headerDIV += f'<h1>{output["ip"]}</h1>'
+		headerDIV += f'<img src="{output["flag"]}" alt="{output["location"]["country_code"]}_flag" style="width: 5vw; height: auto;"/>'
+		headerDIV += '</div>'
+		
+		return headerDIV 
+		
 
-			detectionsDIV += f'<tr><td>IBM XForce</td><td>{int(output["xforceData"]["score"] * 10)}%</td></tr>'
+	def addDetectionsDiv():
+		#build table div from detection engines
 
-			#add XForce categories
-			for key, value in output['xforceData']['categories'].items():
-				detectionsDIV += f'<tr><td>XForce {key}</td><td>{value}%</td></tr>'
+		detectionsDIV = '<div><h2>Detections</h2>'
+		abuseIPDBDIV = '<div><table><tr><th colspan="2"><h3>AbuseIPDB</h3></th></tr>'
+		
+		#add AbuseIPDB data
+		if output['abuseIPDBDetections']['totalReports'] > 0:
+			abuseIPDBDIV += f'<tr><th>Hostile</th><td>{output["abuseIPDBDetections"]["score"]}%</td></tr>\
+			<tr><th>Reports</th><td>{output["abuseIPDBDetections"]["totalReports"]}</td></tr>\
+			<tr><th>Last Report</th><td>{output["abuseIPDBDetections"]["lastReport"][:-9]}</td></tr>'
+		else:
+			abuseIPDBDIV += f'<tr><td colspan="2">No Reports</td></tr>'
 
-			#add VT detections
-			vtdetections = ''
-			
-			for i in output['vtDetections']:
-				vtdetections += f'<tr><td>{i["url"]}</td><td>{i["positives"]} / {i["total"]}</td></tr>\
-				<tr><td colspan="2">{i["scan_date"][:-9]}</td></tr>'
+		abuseIPDBDIV += "</table></div>"
 
-			detectionsDIV += vtdetections
+		#add Xforce data
+		xforceDIV = '<div><table><tr><th colspan="2"><h3>IBM XForce</h3></td></tr>'
+		xforceDIV += f'<tr><th>Hostile</th><td>{int(output["xforceData"]["score"] * 10)}%</td></tr>'
 
-			detectionsDIV += '</table></div>'
+		#add XForce categories
+		for key, value in output['xforceData']['categories'].items():
+			xforceDIV += f'<tr><th>{key}</th><td>{value}%</td></tr>'
 
-			return detectionsDIV
+		xforceDIV += "</table></div>"
+
+		#add VT detections
+		vtDIV = '<div><table><tr><th colspan="3"><h3>VirusTotal</h3></td></tr>'
+
+		if len(output['vtDetections']) == 0:
+			return vtDIV + '<tr><td colspan="3">No Reports</td></tr></table></div>'
+
+		vtDIV += '<tr><td>URL</td><td>Scan Date</td><td>% Hostile</td></tr>'
+
+		for i in output['vtDetections']:
+			percent = int(int(i["total"]) / int(i["positives"]))
+			vtDIV += f'<tr><th>{i["url"]}</th><td>{i["scan_date"][:-9]}</td><td>{percent}%</td></tr>'
+
+		vtDIV += '</table></div>'
+
+		detectionsDIV += abuseIPDBDIV + xforceDIV + vtDIV + '</div>'
+
+		return detectionsDIV
 
 
 		def vpnDIV():
@@ -516,21 +512,31 @@ def buildHTML(output):
 			return vpnDIV + '</table></div>'
 
 
-		logging.debug('Adding header div')
-		headerDIV = f'<div><h1>{output["ip"]}</h1>'
-		headerDIV += detectionsDIV() + vpnDIV() + '</div>'
-		
-		return headerDIV 
-		
+	def addVpnDiv():
+		#build table div from vpnapi data
+
+		vpnDIV = f'<div><table>'
+
+		for key, value in output["VPNData"].items():
+
+			if value:
+				vpnDIV += f'<tr class="highlight"><td>{key}</td><td>{value}</td></tr>'
+			else:
+				vpnDIV += f'<tr class="dull"><td>{key}</td><td>{value}</td></tr>'
+
+		return vpnDIV + '</table></div>'
+
 
 	html = boilerplate()
 	html += addHeaderDiv(html)
 	html += addLocationDiv(html)
 	html += addNetworkDiv(html)
+	html += addVpnDiv()
+	html += addDetectionsDiv()
+
 	html += addPortsDiv(html)
 	html += addHistoricUrls(html)
 	html += addXforecHistory(html)
-	#html += addDetections(html)
 	html += '</body>\n</html>'
 
 	writeHTMLToFile(html)
